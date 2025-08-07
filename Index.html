@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Card Benefit Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Neutral Slate with Blue Accent -->
+    <!-- Application Structure Plan: A responsive dashboard with a card-based layout. Each card represents a credit card and contains an interactive checklist of its benefits. Checking a benefit updates a progress bar and a summary, showing the user the value they've extracted relative to the annual fee. This structure is intuitive, provides immediate feedback, and allows for easy comparison between cards. -->
+    <!-- Visualization & Content Choices: Card Info -> Goal: Organize -> Presentation: Card layout -> Interaction: N/A. Benefits List -> Goal: Track -> Presentation: Interactive Checklist (HTML checkboxes for annual), individual checkboxes for each month for monthly benefits, and numeric input for variable annual benefits -> Interaction: Click to toggle checkbox, click individual monthly checkboxes, input numeric value. Annual Fee Offset -> Goal: Visualize Progress -> Presentation: Horizontal Bar Chart (Chart.js) -> Interaction: Dynamically updates on checkbox/input change. This combination of a list and a visual chart provides both detailed tracking and a quick-glance summary of value. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            height: 40px;
+            width: 100%;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Credit Card Benefit Tracker</h1>
+            <p class="text-slate-500 mt-2">Check off the benefits you've used or input amounts to see how much value you're getting from each card.</p>
+        </header>
+
+        <main id="card-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <!-- Credit card components will be injected here by JavaScript -->
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const years = Array.from({length: 20}, (_, i) => 2020 + i);
+            const days = Array.from({length: 31}, (_, i) => i + 1);
+
+            const cardData = [
+                {
+                    id: 'chase-sapphire-reserve',
+                    name: 'Chase Sapphire Reserve',
+                    bank: 'Chase',
+                    annualFee: 550,
+                    openDate: { month: 'Aug', day: 1, year: 2022 },
+                    benefits: [
+                        { description: '$300 Annual Travel Credit', value: 300, frequency: 'variable_annual', amountUsed: 0 },
+                        { description: 'Priority Pass Select Membership', value: 469, frequency: 'annual', used: false },
+                        { description: 'Global Entry/TSA PreCheck Credit', value: 100, frequency: 'annual', used: false },
+                        { description: 'DoorDash DashPass Credit ($10/mo)', value: 10, frequency: 'monthly', monthsUsed: Array(12).fill(false) },
+                        { description: '$10/mo Lyft Credit', value: 10, frequency: 'monthly', monthsUsed: Array(12).fill(false) }
+                    ],
+                    additionalBenefits: [
+                        '**Purchase Protection:** Covers new purchases against damage or theft for 120 days, up to $10,000 per claim.',
+                        '**Extended Warranty Protection:** Extends U.S. manufacturer\'s warranty by one additional year, on eligible warranties of three years or less.',
+                        '**Lost Luggage Reimbursement:** Reimburses up to $3,000 per passenger for lost or damaged luggage on a covered trip.'
+                    ],
+                    totalEarnings: { pointsEarned: 0, unit: 'points' },
+                    redemptionOptions: [
+                        { method: 'Transfer to Partners', pointsRedeemed: 0, valueDescription: 'High value possible'},
+                        { method: 'Booking Travel', pointsRedeemed: 0, valueDescription: '1.5x value' },
+                        { method: 'Cash Back / Statement Credit', pointsRedeemed: 0, valueDescription: '1.0x value' },
+                        { method: 'Other', pointsRedeemed: 0, valueDescription: 'Varies' }
+                    ]
+                },
+                {
+                    id: 'chase-united-quest',
+                    name: 'Chase United Quest',
+                    bank: 'Chase',
+                    annualFee: 350,
+                    openDate: { month: 'Mar', day: 1, year: 2024 },
+                    benefits: [
+                        { description: '$200 United TravelBank Credit', value: 200, frequency: 'variable_annual', amountUsed: 0 },
+                        { description: 'First & Second Free Checked Bag (for 2)', value: 360, frequency: 'annual', used: false },
+                        { description: '10,000-mile award flight discount', value: 135, frequency: 'annual', used: false },
+                        { description: '$100 rideshare credits ($8/mo)', value: 8, frequency: 'monthly', monthsUsed: Array(12).fill(false) },
+                        { description: '$180 Instacart credits ($15/mo)', value: 15, frequency: 'monthly', monthsUsed: Array(12).fill(false) }
+                    ],
+                    additionalBenefits: [
+                        '**Earning Multipliers:** 3x miles on United purchases, 2x on other travel, dining, and streaming services.',
+                        '**Travel Protection:** Includes Trip Cancellation/Interruption Insurance ($1,500 pp), Trip Delay Reimbursement ($500 pp), and Lost Luggage Reimbursement ($3,000 pp).',
+                        '**Purchase Protection:** Covers new purchases for 120 days against damage or theft, up to $500 per claim.'
+                    ],
+                    totalEarnings: { pointsEarned: 0, unit: 'miles' },
+                    redemptionOptions: [
+                        { method: 'Award Flights', pointsRedeemed: 0, valueDescription: 'High value possible' },
+                        { method: 'Other Travel', pointsRedeemed: 0, valueDescription: 'Varies' },
+                        { method: 'Merchandise', pointsRedeemed: 0, valueDescription: 'Low value' }
+                    ]
+                },
+                {
+                    id: 'chase-amazon-prime-visa',
+                    name: 'Chase Amazon Prime Visa',
+                    bank: 'Chase',
+                    annualFee: 0,
+                    openDate: { month: 'Sep', day: 1, year: 2023 },
+                    benefits: [],
+                    additionalBenefits: [
+                        '**Earning Multipliers:** 5% back at Amazon.com and Whole Foods, 2% on restaurants, drugstores, and gas stations.',
+                        '**Travel Protections:** Includes baggage delay insurance, lost luggage reimbursement, and trip delay reimbursement.',
+                        '**Purchase Protection:** Covers new purchases for 120 days against damage or theft, up to $500 per claim.',
+                        '**Extended Warranty Protection:** Extends U.S. manufacturer\'s warranty by one additional year.'
+                    ],
+                    totalEarnings: { pointsEarned: 0, unit: 'cash back' },
+                    redemptionOptions: [
+                        { method: 'Amazon.com Credit', pointsRedeemed: 0, valueDescription: '1.0x value' },
+                        { method: 'Statement Credit', pointsRedeemed: 0, valueDescription: '1.0x value' },
+                        { method: 'Gift Cards', pointsRedeemed: 0, valueDescription: 'Varies' }
+                    ]
+                },
+                {
+                    id: 'chase-business-ink-preferred',
+                    name: 'Chase Ink Business Preferred',
+                    bank: 'Chase',
+                    annualFee: 95,
+                    openDate: { month: 'Jan', day: 1, year: 2023 },
+                    benefits: [
+                        { description: 'Cell Phone Protection', value: 1000, frequency: 'variable_annual', amountUsed: 0 }
+                    ],
+                    additionalBenefits: [
+                        '**Earning Multipliers:** 3x points on travel, shipping, internet/cable/phone, and advertising (on up to $150,000 annually).',
+                        '**Primary Auto Rental Collision Damage Waiver:** Covers theft and collision damage on rental cars.',
+                        '**Trip Cancellation/Interruption Insurance:** Reimburses up to $5,000 per person for prepaid nonrefundable travel expenses.',
+                        '**Purchase Protection:** Covers new purchases for 120 days against damage or theft, up to $10,000 per claim.'
+                    ],
+                    totalEarnings: { pointsEarned: 0, unit: 'points' },
+                    redemptionOptions: [
+                        { method: 'Booking Travel', pointsRedeemed: 0, valueDescription: '1.25x value' },
+                        { method: 'Transfer to Partners', pointsRedeemed: 0, valueDescription: 'High value possible' },
+                        { method: 'Cash Back / Statement Credit', pointsRedeemed: 0, valueDescription: '1.0x value' },
+                        { method: 'Gift Cards', pointsRedeemed: 0, valueDescription: 'Varies' }
+                    ]
+                },
+                {
+                    id: 'chase-freedom-flex',
+                    name: 'Chase Freedom Flex',
+                    bank: 'Chase',
+                    annualFee: 0,
+                    openDate: { month: 'Feb', day: 1, year: 2022 },
+                    benefits: [
+                        { description: '5% Rotating Categories', value: 75, frequency: 'quarterly', used: [false, false, false, false], options: ['Grocery Stores', 'Amazon.com', 'Wholesale Clubs', 'Gas Stations', 'Streaming Services', 'Drugstores'] },
+                        { description: 'Cell Phone Protection', value: 800, frequency: 'variable_annual', amountUsed: 0 }
+                    ],
+                    additionalBenefits: [
+                        '**Earning Multipliers:** 5% on rotating bonus categories (up to $1,500 quarterly), 5% on travel booked through Chase, 3% on dining and drugstores.',
+                        '**Purchase Protection:** Covers new purchases for 120 days against damage or theft, up to $500 per claim.',
+                        '**Extended Warranty:** Extends U.S. manufacturer\'s warranty by one additional year.'
+                    ],
+                    totalEarnings: { pointsEarned: 0, unit: 'cash back' },
+                    redemptionOptions: [
+                        { method: 'Booking Travel', pointsRedeemed: 0, valueDescription: '1.0x value' },
+                        { method: 'Cash Back / Statement Credit', pointsRedeemed: 0, valueDescription: '1.0x value' },
+                        { method: 'Pay Yourself Back', pointsRedeemed: 0, valueDescription: '1.0x-1.25x value' }
+                    ]
+                },
+                {
+                    id: 'amex-platinum',
+                    name: 'Amex Platinum',
+                    bank: 'American Express',
+                    annualFee: 695,
+                    openDate: { month: 'May', day: 15, year: 2021 },
+                    benefits: [
+                        { description: '$200 Hotel Credit', value: 200, frequency: 'variable_annual', amountUsed: 0 },
+                        { description: '$200 Airline Fee Credit', value: 200, frequency: 'variable_annual', amountUsed: 0 },
+                        { description: '$240 Digital Entertainment Credit ($20/mo)', value: 20, frequency: 'monthly', monthsUsed: Array(12).fill(false) },
+                        { description: '$155 Walmart+ Credit ($12.95/mo)', value: 12.95, frequency: 'monthly', monthsUsed: Array(12).fill(false) },
+                        { description: '$200 Uber Cash ($15/mo)', value: 15, frequency: 'monthly', monthsUsed: Array(12).fill(false) },
+                        { description: '$100 Saks Credit', value: 100, frequency: 'variable_annual', amountUsed: 0 },
+                        { description: '$189 CLEAR Plus Credit', value: 189, frequency: 'variable_annual', amountUsed: 0 }
+                    ],
+                    additionalBenefits: [
+                        '**Earning Multipliers:** 5x points on flights booked directly with airlines or through Amex Travel, 5x on prepaid hotels booked on Amex Travel.',
+                        '**Cell Phone Protection:** Up to $800 per claim for repair/replacement against damage or theft when you pay your cell bill with the card (limit 2 claims per 12 months, $50 deductible).',
+                        '**Purchase Protection:** Covers eligible purchases for 90 days against damage or theft, up to $10,000 per claim.',
+                        '**Extended Warranty:** Adds up to one extra year to the original manufacturer\'s warranty of 5 years or less.',
+                        '**Baggage Insurance:** Provides coverage for lost, damaged, or stolen baggage during a covered trip.'
+                    ],
+                    totalEarnings: { pointsEarned: 0, unit: 'points' },
+                    redemptionOptions: [
+                        { method: 'Transfer to Partners', pointsRedeemed: 0, valueDescription: 'High value possible' },
+                        { method: 'Booking Travel', pointsRedeemed: 0, valueDescription: '1.0x value' },
+                        { method: 'Statement Credit', pointsRedeemed: 0, valueDescription: '0.6x value' },
+                        { method: 'Gift Cards', pointsRedeemed: 0, valueDescription: 'Varies' },
+                        { method: 'Other', pointsRedeemed: 0, valueDescription: 'Varies' }
+                    ]
+                },
+                {
+                    id: 'amex-blue-cash-everyday',
+                    name: 'Amex Blue Cash Everyday',
+                    bank: 'American Express',
+                    annualFee: 0,
+                    openDate: { month: 'Nov', day: 1, year: 2023 },
+                    benefits: [
+                        { description: '$84 Disney Bundle Credit ($7/mo)', value: 7, frequency: 'monthly', monthsUsed: Array(12).fill(false) }
+                    ],
+                    additionalBenefits: [
+                        '**Earning Multipliers:** 3% cash back at U.S. supermarkets, U.S. gas stations, and online retail purchases (on up to $6,000 per year in each category).',
+                        '**Amex Offers:** Access to exclusive discounts and credits at various merchants.',
+                        '**Car Rental Loss and Damage Insurance:** Secondary coverage for theft or damage to a rental vehicle.'
+                    ],
+                    totalEarnings: { pointsEarned: 0, unit: 'cash back' },
+                    redemptionOptions: [
+                        { method: 'Statement Credit', pointsRedeemed: 0, valueDescription: '1.0x value' },
+                        { method: 'Merchandise', pointsRedeemed: 0, valueDescription: 'Varies' },
+                        { method: 'Gift Cards', pointsRedeemed: 0, valueDescription: 'Varies' }
+                    ]
+                },
+                {
+                    id: 'amex-amazon-business-prime',
+                    name: 'Amex Amazon Business Prime',
+                    bank: 'American Express',
+                    annualFee: 125,
+                    openDate: { month: 'May', day: 1, year: 2024 },
+                    benefits: [
+                        { description: '$125 Amazon.com Credit', value: 125, frequency: 'variable_annual', amountUsed: 0 }
+                    ],
+                    additionalBenefits: [
+                        '**Earning Multipliers:** 5% back on Amazon.com and Whole Foods, 2% at U.S. gas stations, restaurants, and wireless services.',
+                        '**Extended Warranty:** Adds up to one extra year to eligible manufacturer\'s warranties.',
+                        '**Purchase Protection:** Covers new purchases for 90 days against damage or theft.'
+                    ],
+                    totalEarnings: { pointsEarned: 0, unit: 'cash back' },
+                    redemptionOptions: [
+                        { method: 'Amazon.com Credit', pointsRedeemed: 0, valueDescription: '1.0x value' },
+                        { method: 'Statement Credit', pointsRedeemed: 0, valueDescription: '0.6x value' }
+                    ]
+                },
+                {
+                    id: 'delta-amex-platinum',
+                    name: 'Delta Amex Platinum',
+                    bank: 'American Express',
+                    annualFee: 350,
+                    openDate: { month: 'Apr', day: 1, year: 2024 },
+                    benefits: [
+                        { description: 'Annual Companion Certificate', value: 200, frequency: 'annual', used: false },
+                        { description: 'First Checked Bag Free (for 9)', value: 60, frequency: 'annual', used: false },
+                        { description: '$150 Delta Stays Credit', value: 150, frequency: 'variable_annual', amountUsed: 0 },
+                        { description: '$120 Resy Credit ($10/mo)', value: 10, frequency: 'monthly', monthsUsed: Array(12).fill(false) },
+                        { description: '$120 Rideshare Credit ($10/mo)', value: 10, frequency: 'monthly', monthsUsed: Array(12).fill(false) },
+                        { description: 'Global Entry/TSA PreCheck Credit', value: 100, frequency: 'annual', used: false }
+                    ],
+                    additionalBenefits: [
+                        '**Earning Multipliers:** 3x miles on Delta purchases and hotels, 2x on dining and U.S. supermarkets, 1x on all other purchases.',
+                        '**Cell Phone Protection:** Up to $800 per claim for repair/replacement against damage or theft when you pay your cell bill with the card (limit 2 claims per 12 months, $50 deductible).',
+                        '**Purchase Protection:** Covers eligible purchases for 90 days against damage or theft, up to $1,000 per claim.',
+                        '**Extended Warranty:** Adds up to one extra year to the original manufacturer\'s warranty of 5 years or less.',
+                        '**Baggage Insurance:** Provides coverage for lost, damaged, or stolen baggage during a covered trip.'
+                    ],
+                    totalEarnings: { pointsEarned: 0, unit: 'miles' },
+                    redemptionOptions: [
+                        { method: 'Award Flights', pointsRedeemed: 0, valueDescription: 'High value possible' },
+                        { method: 'Gift Cards', pointsRedeemed: 0, valueDescription: '0.8x value' },
+                        { method: 'Merchandise', pointsRedeemed: 0, valueDescription: 'Low value' }
+                    ]
+                },
+                {
+                    id: 'us-bank-altitude-reserve',
+                    name: 'US Bank Altitude Reserve',
+                    bank: 'US Bank',
+                    annualFee: 400,
+                    openDate: { month: 'Jan', day: 20, year: 2023 },
+                    benefits: [
+                        { description: '$325 Annual Travel & Dining Credit', value: 325, frequency: 'variable_annual', amountUsed: 0 },
+                       
